@@ -715,8 +715,210 @@ GROUP BY MAKHOA, HOCVI ORDER BY MAKHOA
 
 --Bai 22
 
-SELECT * FROM KETQUATHI
-
+SELECT DEM1.MAMH,SODAT,SOKHONGDAT FROM
+             (
+                SELECT MAMH, COUNT(DISTINCT MAHV) AS SODAT
+                FROM KETQUATHI
+                WHERE KQUA = 'DAT'
+                GROUP BY MAMH
+             ) AS DEM1
+INNER JOIN
+            (
+                SELECT MAMH, COUNT(DISTINCT MAHV) AS SOKHONGDAT
+                FROM KETQUATHI KQ1
+                WHERE KQUA = 'KHONG DAT' AND MAHV NOT IN (
+                    SELECT MAHV
+                    FROM KETQUATHI KQ2
+                    WHERE KQUA = 'DAT' AND KQ1.MAMH = KQ2.MAMH
+                )
+            GROUP BY MAMH) AS DEM2
+ON  DEM1.MAMH = DEM2.MAMH
 
 --Bai 23
 
+SELECT DISTINCT MAGVCN,HOTEN FROM
+    GIANGDAY INNER JOIN LOP ON GIANGDAY.MAGV = LOP.MAGVCN AND GIANGDAY.MALOP = LOP.MALOP
+             INNER JOIN GIAOVIEN G on GIANGDAY.MAGV = G.MAGV
+
+--Bai 24
+SELECT HO +' ' + TEN AS HOTEN
+FROM HOCVIEN
+INNER JOIN
+(SELECT TOP 1 WITH TIES TRGLOP FROM LOP
+ORDER BY SISO DESC) AS KQ
+ON HOCVIEN.MAHV = KQ.TRGLOP
+
+--Bai 25
+SELECT MAHV, MAMH
+FROM KETQUATHI KQ INNER JOIN  LOP L ON KQ.MAHV = L.TRGLOP
+select TRGLOP from LOP
+
+
+SELECT MAHV
+FROM KETQUATHI KQ INNER JOIN  LOP L ON KQ.MAHV = L.TRGLOP
+WHERE KQUA = 'KHONG DAT' AND NOT EXISTS(
+        SELECT * FROM KETQUATHI KQ1
+                 WHERE KQ.MAHV = KQ1.MAHV AND KQ1.KQUA = 'DAT'
+    )
+GROUP BY MAHV
+having count(DISTINCT MAMH) >3
+
+DELETE KETQUATHI
+WHERE MAHV = 'K1205'
+
+INSERT INTO KETQUATHI (MAHV, MAMH, LANTHI, NGTHI, DIEM, KQUA) VALUES
+('K1205', 'CSDL', 1, '2006-07-20', 3, 'khong dat'),
+('K1205', 'CSDL', 2, '2006-07-20', 3, 'khong dat'),
+('K1205', 'CSDL', 3, '2006-07-20', 3, 'khong dat'),
+('K1205', 'CTDLGT', 1, '2006-12-28', 6, 'dat'),
+('K1205', 'THDC', 1, '2006-05-20',5, 'dat'),
+('K1205', 'CTRR', 1, '2006-05-20',3, 'khong dat')
+
+--Bai 26
+SELECT TOP 1 WITH TIES H.MAHV, H.HO + ' '+  H.TEN AS HOTEN ,COUNT(*) AS SODIEM910
+FROM KETQUATHI K INNER JOIN HOCVIEN H ON K.MAHV = H.MAHV
+WHERE DIEM BETWEEN 9 AND 10
+GROUP BY H.MAHV, HO,TEN
+ORDER BY COUNT(*) DESC
+
+--Bai 27
+
+
+SELECT H.MAHV, H.HO + ' '+  H.TEN AS HOTEN ,COUNT(*) AS SODIEM910, MALOP
+FROM KETQUATHI K INNER JOIN HOCVIEN H ON K.MAHV = H.MAHV
+WHERE DIEM BETWEEN 9 AND 10
+GROUP BY H.MAHV, HO,TEN,MALOP
+HAVING COUNT(*) >= ALL (
+        SELECT COUNT(*)
+        FROM KETQUATHI K1 INNER JOIN HOCVIEN H1 ON K1.MAHV = H1.MAHV
+        WHERE DIEM BETWEEN 9 AND 10 AND H.MALOP = H1.MALOP
+        GROUP BY K1.MAHV, H1.MALOP
+    )
+
+
+--Bai 28
+SELECT MAGV,NAM,HOCKY, COUNT(DISTINCT MAMH) AS SOMONPHANCONG, COUNT(MALOP) AS SOLOPPHANCONG
+FROM GIANGDAY
+GROUP BY MAGV, NAM, HOCKY
+
+--Bai 29
+
+SELECT MAGV,NAM,HOCKY, COUNT(*) AS SOLOPPHANCONG
+FROM GIANGDAY G1
+GROUP BY MAGV, NAM, HOCKY
+HAVING COUNT(*) >= ALL (
+        SELECT COUNT(*) AS SOLOPPHANCONG
+        FROM GIANGDAY G2
+        WHERE G1.HOCKY = G2.HOCKY AND G1.NAM = G2.NAM
+        GROUP BY MAGV, NAM, HOCKY
+    )
+--Bai 30
+select * from KETQUATHI where LANTHI = 1 and KQUA = 'khong dat'
+
+SELECT TOP 1 WITH TIES K.MAMH, TENMH
+FROM KETQUATHI K INNER JOIN MONHOC M on K.MAMH = M.MAMH
+WHERE LANTHI = 1 AND KQUA = 'KHONG DAT'
+GROUP BY K.MAMH, TENMH
+ORDER BY COUNT(MAHV) DESC
+--Bai 31
+SELECT MAHV
+FROM KETQUATHI K1
+WHERE LANTHI = 1 AND KQUA = 'DAT' AND NOT EXISTS (
+        SELECT *
+        FROM KETQUATHI K2
+        WHERE K2.KQUA = 'KHONG DAT' AND K1.MAHV = K2.MAHV
+    )
+GROUP BY MAHV
+--Bai 32
+SELECT * FROM KETQUATHI
+
+SELECT DISTINCT MAHV
+FROM KETQUATHI K1
+WHERE NOT EXISTS(SELECT *
+                 FROM KETQUATHI K2
+                 WHERE K1.MAHV = K2.MAHV
+                   AND K2.KQUA = 'KHONG DAT'
+                   AND K2.LANTHI = (SELECT MAX(LANTHI)
+                                    FROM KETQUATHI K3
+                                    WHERE K2.MAHV = K3.MAHV
+                                      AND K2.MAMH = K3.MAMH
+                                    GROUP BY K3.MAHV, K3.MAMH))
+--Bai 33
+
+
+SELECT distinct MAHV
+FROM HOCVIEN H
+WHERE NOT EXISTS(
+    select *
+    from MONHOC m
+    where not exists (
+        select *
+        from KETQUATHI k
+        where k.MAMH = m.MAMH and k.MAHV = h.MAHV and KQUA = 'dat' and LANTHI = 1
+        )
+)
+
+select * from KETQUATHI where MAHV = 'K1111'
+delete KETQUATHI where MAHV = 'k1111'
+
+INSERT INTO MONHOC (MAMH, TENMH, TCLT, TCTH, MAKHOA) VALUES
+('THDC', 'Tin hoc dai cuong', 4, 1, 'KHMT'),
+('CTRR', 'Cau truc roi rac', 5, 0, 'KHMT'),
+('CSDL', 'Co so du lieu', 3, 1, 'HTTT'),
+('CTDLGT', 'Cau truc du lieu va giai thuat', 3, 1, 'KHMT'),
+('PTTKTT', 'Phan tich thiet ke thuat toan', 3, 0, 'KHMT'),
+('DHMT', 'Do hoa may tinh', 3, 1, 'KHMT'),
+('KTMT', 'Kien truc may tinh', 3, 0, 'KTMT'),
+('TKCSDL', 'Thiet ke co so du lieu', 3, 1, 'HTTT'),
+('PTTKHTTT', 'Phan tich thiet ke he thong thong tin', 4, 1, 'HTTT'),
+('HDH', 'He dieu hanh', 4, 0, 'KTMT'),
+('NMCNPM', 'Nhap mon cong nghe phan mem', 3, 0, 'CNPM'),
+('LTCFW', 'Lap trinh C for win', 3, 1, 'CNPM'),
+('LTHDT', 'Lap trinh huong doi tuong', 3, 1, 'CNPM');
+
+INSERT INTO KETQUATHI (MAHV, MAMH, LANTHI, NGTHI, DIEM, KQUA) VALUES
+('K1111', 'THDC', 1, '2006-07-20', 4.00, 'Khong dat'),
+('K1111', 'THDC', 2, '2006-07-20', 3.00, 'KHONG DAT'),
+('K1111', 'CTRR', 1, '2006-07-20', 10.00, 'Dat'),
+('K1111', 'CSDL', 1, '2006-07-20', 10.00, 'Dat'),
+('K1111', 'CTDLGT', 1, '2006-07-20', 10.00, 'Dat'),
+('K1111', 'PTTKTT', 1, '2006-07-20', 10.00, 'Dat'),
+('K1111', 'DHMT', 1, '2006-07-20', 10.00, 'Dat'),
+('K1111', 'KTMT', 1, '2006-07-20', 10.00, 'Dat'),
+('K1111', 'TKCSDL', 1, '2006-07-20', 10.00, 'Dat'),
+('K1111', 'PTTKHTTT', 1, '2006-07-20', 10.00, 'Dat'),
+('K1111', 'HDH', 1, '2006-07-20', 10.00, 'Dat'),
+('K1111', 'NMCNPM', 1, '2006-07-20', 10.00, 'Dat'),
+('K1111', 'LTCFW', 1, '2006-07-20', 10.00, 'Dat'),
+('K1111', 'LTHDT', 1, '2006-07-20', 10.00, 'Dat')
+--Bai 34
+
+SELECT distinct MAHV
+FROM HOCVIEN H
+WHERE NOT EXISTS(select *
+                 from MONHOC m
+                 where not exists (select *
+                                   from KETQUATHI k
+                                   where k.MAMH = m.MAMH
+                                     and k.MAHV = h.MAHV
+                                     and KQUA = 'dat'
+                                     and LANTHI = (select max(lanthi)
+                                                   from KETQUATHI k1
+                                                   where k1.MAHV = k.MAHV
+                                                     and k.mamh = k1.MAmh)))
+
+--Bai 35
+
+select *
+from
+    KETQUATHI k1
+inner join
+(select MAMH , max(diem) as diem
+from KETQUATHI
+group by MAMH) as kq
+on kq.MAMH = k1.MAMH and k1.DIEM = kq.diem
+where LANTHI = (
+    select max(lanthi)
+    from KETQUATHI k2
+    where k1.MAMH = k2.MAMH and k1.mahv = k2.MAHV
+    )
